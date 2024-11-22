@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT Chat with Sender Name</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .chat-container {
+            width: 400px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-box {
+            height: 300px;
+            overflow-y: scroll;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            background: #f1f1f1;
+        }
+
+        .message {
+            padding: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .form-group {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .form-control {
+            flex: 1;
+            padding: 10px;
+            margin-right: 10px;
+        }
+
+        .btn-send {
+            padding: 10px;
+            background-color: #28a745;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+
+        .info {
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .highlight {
+            color: #007bff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="chat-container">
+        <h3>MQTT Chat with Sender Name</h3>
+        <p class="info">Broker: <span class="highlight" id="broker">wss://broker.emqx.io:8084/mqtt</span></p>
+        <p class="info">Topic: <span class="highlight" id="topic">chat/room1</span></p>
+        <input type="text" id="sender-name" class="form-control" placeholder="Your name">
+        <div class="message-box" id="message-box"></div>
+        <div class="form-group">
+            <input type="text" id="message-input" class="form-control" placeholder="Type a message...">
+            <button id="send-btn" class="btn-send">Send</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/mqtt/dist/mqtt.min.js"></script>
+    <script>
+        // MQTT Client setup
+        const BROKER = 'wss://broker.emqx.io:8084/mqtt';
+        const TOPIC = 'chat/room1';
+
+        document.getElementById('broker').textContent = BROKER;
+        document.getElementById('topic').textContent = TOPIC;
+
+        const client = mqtt.connect(BROKER);
+
+        // Subscribe to the topic
+        client.on('connect', () => {
+            console.log('Connected to MQTT broker');
+            client.subscribe(TOPIC, (err) => {
+                if (err) {
+                    console.error('Subscription error', err);
+                }
+            });
+        });
+
+        // Display incoming messages in the chat
+        client.on('message', (topic, message) => {
+            const messageBox = document.getElementById('message-box');
+            const msg = document.createElement('div');
+            msg.className = 'message';
+            msg.textContent = message.toString();
+            messageBox.appendChild(msg);
+            messageBox.scrollTop = messageBox.scrollHeight; // Scroll to bottom
+        });
+
+        // Send messages on button click
+        document.getElementById('send-btn').addEventListener('click', () => {
+            const senderName = document.getElementById('sender-name').value || 'Anonymous';
+            const messageContent = document.getElementById('message-input').value;
+            if (messageContent) {
+                const message = `${senderName}: ${messageContent}`;
+                client.publish(TOPIC, message); // Publish the message to the MQTT topic
+                document.getElementById('message-input').value = ''; // Clear input field
+            }
+        });
+
+        // Handle pressing Enter key for both fields
+        document.getElementById('message-input').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                document.getElementById('send-btn').click();
+            }
+        });
+
+        document.getElementById('sender-name').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                document.getElementById('message-input').focus();
+            }
+        });
+    </script>
+
+</body>
+
+</html>
